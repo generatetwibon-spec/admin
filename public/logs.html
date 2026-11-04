@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Audit Scan Logs - GateCheck (System 2)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen">
+
+  <div class="max-w-7xl mx-auto p-6 sm:p-8 space-y-6">
+
+    <!-- Header Navigation -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div class="flex items-center space-x-3">
+        <a href="/" class="w-10 h-10 rounded-xl bg-white border border-slate-200 hover:bg-slate-100 text-slate-600 flex items-center justify-center transition shadow-sm">
+          <i class="fa-solid fa-arrow-left"></i>
+        </a>
+        <div>
+          <h1 class="text-2xl font-extrabold text-slate-900">Log Audit Scan Lapangan</h1>
+          <p class="text-xs text-slate-500">Riwayat riil pengetukan tiket di seluruh pos gate (Database 2)</p>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-3">
+        <button onclick="exportCSV()" class="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition shadow-sm flex items-center">
+          <i class="fa-solid fa-file-csv mr-2"></i> Ekspor ke CSV
+        </button>
+        <button onclick="fetchLogs()" class="px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-bold transition shadow-sm">
+          <i class="fa-solid fa-rotate" id="refreshIcon"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Filters Bar -->
+    <div class="p-4 bg-white border border-slate-200 rounded-2xl flex flex-wrap gap-4 items-center justify-between text-xs shadow-sm">
+      <div class="flex flex-wrap gap-3 items-center">
+        <div>
+          <label class="text-slate-500 font-bold mr-2">Status:</label>
+          <select id="filterStatus" onchange="fetchLogs()" class="bg-slate-50 border border-slate-300 text-slate-800 py-1.5 px-3 rounded-lg focus:outline-none focus:border-blue-600">
+            <option value="">Semua Status</option>
+            <option value="VALID">Berhasil Masuk (VALID)</option>
+            <option value="ALREADY_ATTENDED">Duplikat (ALREADY_ATTENDED)</option>
+            <option value="INVALID">Tidak Valid (INVALID)</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="text-slate-500 font-bold mr-2">Gate:</label>
+          <select id="filterGate" onchange="fetchLogs()" class="bg-slate-50 border border-slate-300 text-slate-800 py-1.5 px-3 rounded-lg focus:outline-none focus:border-blue-600">
+            <option value="">Semua Pos Gate</option>
+            <option value="Gate 1 - Pintu Utama">Gate 1 - Pintu Utama</option>
+            <option value="Gate 2 - Pintu Barat">Gate 2 - Pintu Barat</option>
+            <option value="Gate 3 - Pintu Timur">Gate 3 - Pintu Timur</option>
+            <option value="Gate VIP & Pembicara">Gate VIP & Pembicara</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="text-slate-500 text-[11px] font-medium" id="logCountText">Menampilkan 0 log</div>
+    </div>
+
+    <!-- Logs Table -->
+    <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs">
+          <thead class="bg-slate-50 text-slate-600 font-bold uppercase tracking-wider border-b border-slate-200">
+            <tr>
+              <th class="py-3.5 px-6">ID</th>
+              <th class="py-3.5 px-6">Waktu Scan</th>
+              <th class="py-3.5 px-6">Kode Tiket</th>
+              <th class="py-3.5 px-6">Nama Peserta</th>
+              <th class="py-3.5 px-6">Pos Gate</th>
+              <th class="py-3.5 px-6">Status Verifikasi</th>
+              <th class="py-3.5 px-6">Keterangan</th>
+            </tr>
+          </thead>
+          <tbody id="logsTableBody" class="divide-y divide-slate-100 text-slate-700">
+            <tr>
+              <td colspan="7" class="py-8 text-center text-slate-400">Memuat log audit...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    let currentLogs = [];
+
+    async function fetchLogs() {
+      const status = document.getElementById('filterStatus').value;
+      const gate = document.getElementById('filterGate').value;
+      const icon = document.getElementById('refreshIcon');
+      icon.classList.add('fa-spin');
+
+      let url = '/api/logs?limit=100';
+      if (status) url += '&status=' + encodeURIComponent(status);
+      if (gate) url += '&gate=' + encodeURIComponent(gate);
+
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
+        const tbody = document.getElementById('logsTableBody');
+
+        if (!data.success || !data.logs || data.logs.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" class="py-8 text-center text-slate-400">Tidak ada log yang sesuai filter.</td></tr>';
+          document.getElementById('logCountText').innerText = '0 log ditemukan';
+          currentLogs = [];
+          return;
+        }
+
+        currentLogs = data.logs;
+        document.getElementById('logCountText').innerText = `${currentLogs.length} log ditemukan`;
+
+        tbody.innerHTML = currentLogs.map(log => {
+          let badge = '';
+          if (log.scan_status === 'VALID') {
+            badge = '<span class="px-2 py-0.5 rounded font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">VALID (MASUK)</span>';
+          } else if (log.scan_status === 'ALREADY_ATTENDED') {
+            badge = '<span class="px-2 py-0.5 rounded font-bold bg-amber-100 text-amber-800 border border-amber-200">DUPLIKAT</span>';
+          } else {
+            badge = '<span class="px-2 py-0.5 rounded font-bold bg-rose-100 text-rose-800 border border-rose-200">TIDAK VALID</span>';
+          }
+
+          const d = new Date(log.scanned_at);
+          const formattedDate = d.toLocaleDateString('id-ID') + ' ' + d.toLocaleTimeString('id-ID');
+
+          return `
+            <tr class="hover:bg-slate-50 transition">
+              <td class="py-3.5 px-6 font-mono text-slate-400">${log.id}</td>
+              <td class="py-3.5 px-6 font-mono text-slate-600">${formattedDate}</td>
+              <td class="py-3.5 px-6 font-mono font-bold text-slate-900">${log.ticket_code}</td>
+              <td class="py-3.5 px-6 font-semibold text-slate-800">${log.participant_name || '-'}</td>
+              <td class="py-3.5 px-6 text-slate-600">${log.gate_name}</td>
+              <td class="py-3.5 px-6">${badge}</td>
+              <td class="py-3.5 px-6 text-slate-500 max-w-xs truncate">${log.response_message || '-'}</td>
+            </tr>
+          `;
+        }).join('');
+
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setTimeout(() => icon.classList.remove('fa-spin'), 600);
+      }
+    }
+
+    function exportCSV() {
+      if (!currentLogs || currentLogs.length === 0) {
+        alert('Tidak ada data log untuk diekspor.');
+        return;
+      }
+
+      let csv = 'ID,Waktu Scan,Kode Tiket,Nama Peserta,Pos Gate,Status,Keterangan\n';
+      currentLogs.forEach(row => {
+        csv += `"${row.id}","${row.scanned_at}","${row.ticket_code}","${row.participant_name || ''}","${row.gate_name}","${row.scan_status}","${(row.response_message || '').replace(/"/g, '""')}"\n`;
+      });
+
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', `gate_logs_${new Date().toISOString().slice(0,10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    document.addEventListener('DOMContentLoaded', fetchLogs);
+  </script>
+</body>
+</html>

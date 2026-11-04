@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portal Klaim E-Sertifikat Resmi - GateCheck (System 2)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .font-serif-title { font-family: 'Cinzel', serif; }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen py-12 px-4 flex flex-col justify-between">
+
+  <div class="max-w-2xl w-full mx-auto space-y-8">
+
+    <!-- Header -->
+    <div class="text-center space-y-2">
+      <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-xs font-bold text-blue-700">
+        <i class="fa-solid fa-certificate"></i>
+        <span>Sistem Penerbitan Dokumen Resmi (System 2)</span>
+      </div>
+      <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">Klaim E-Sertifikat Peserta</h1>
+      <p class="text-slate-500 text-sm max-w-md mx-auto">
+        Masukkan kode tiket yang telah diverifikasi hadir di gate acara untuk mengunduh sertifikat resmi.
+      </p>
+    </div>
+
+    <!-- Search Form -->
+    <div class="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-sm">
+      <form id="claimForm" class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">Kode Tiket Peserta</label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400">
+              <i class="fa-solid fa-barcode"></i>
+            </span>
+            <input type="text" id="ticketInput" required placeholder="Contoh: EVT-2026-X8K9L"
+              class="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-base font-mono uppercase text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-600 transition">
+          </div>
+        </div>
+
+        <button type="submit" id="checkBtn"
+          class="w-full py-3 px-6 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm tracking-wide shadow-sm transition">
+          <i class="fa-solid fa-magnifying-glass mr-2"></i> Periksa Status Sertifikat
+        </button>
+      </form>
+
+      <div id="alertBox" class="hidden mt-4 p-4 rounded-xl text-xs font-semibold"></div>
+    </div>
+
+    <!-- Certificate Preview Card (Hidden until claimed) -->
+    <div id="certificateContainer" class="hidden space-y-4">
+      <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm overflow-hidden">
+        
+        <!-- Canvas Real Renderer -->
+        <canvas id="certCanvas" width="1200" height="850" class="w-full rounded-xl border border-slate-200 bg-white"></canvas>
+
+        <div class="mt-4 flex flex-col sm:flex-row gap-3">
+          <button onclick="downloadCertPng()" class="flex-1 py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition shadow-sm flex items-center justify-center">
+            <i class="fa-solid fa-download mr-2"></i> Unduh Sertifikat (PNG)
+          </button>
+          <button onclick="printCert()" class="py-3 px-6 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition flex items-center justify-center border border-slate-200">
+            <i class="fa-solid fa-print mr-2"></i> Cetak Dokumen
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <footer class="mt-12 text-center text-xs text-slate-500">
+    &copy; 2026 GateCheck Automated Certificate Engine • Menggunakan data terverifikasi dari Database 2
+  </footer>
+
+  <script>
+    let currentCertData = null;
+
+    document.getElementById('claimForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const code = document.getElementById('ticketInput').value.trim();
+      const alertBox = document.getElementById('alertBox');
+      const certContainer = document.getElementById('certificateContainer');
+      const btn = document.getElementById('checkBtn');
+
+      alertBox.classList.add('hidden');
+      certContainer.classList.add('hidden');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Memeriksa Database 2...';
+
+      try {
+        const res = await fetch('/api/certificate/' + encodeURIComponent(code));
+        const data = await res.json();
+
+        if (!data.success) {
+          alertBox.innerText = data.message || 'Sertifikat belum tersedia.';
+          alertBox.className = 'mt-4 p-4 rounded-xl text-xs font-semibold bg-rose-50 text-rose-800 border border-rose-200';
+          alertBox.classList.remove('hidden');
+          return;
+        }
+
+        currentCertData = data.certificate;
+        renderCertificate(currentCertData);
+        certContainer.classList.remove('hidden');
+
+      } catch (err) {
+        console.error(err);
+        alertBox.innerText = 'Gagal memuat sertifikat. Pastikan server aktif.';
+        alertBox.className = 'mt-4 p-4 rounded-xl text-xs font-semibold bg-rose-50 text-rose-800 border border-rose-200';
+        alertBox.classList.remove('hidden');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-magnifying-glass mr-2"></i> Periksa Status Sertifikat';
+      }
+    });
+
+    function renderCertificate(cert) {
+      const canvas = document.getElementById('certCanvas');
+      const ctx = canvas.getContext('2d');
+
+      // Background
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, 1200, 850);
+
+      // Border Frame
+      ctx.lineWidth = 12;
+      ctx.strokeStyle = '#2563eb'; // blue-600
+      ctx.strokeRect(30, 30, 1140, 790);
+
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#e2e8f0';
+      ctx.strokeRect(48, 48, 1104, 754);
+
+      // Corner Ornaments
+      ctx.fillStyle = '#1d4ed8';
+      ctx.fillRect(20, 20, 35, 35);
+      ctx.fillRect(1145, 20, 35, 35);
+      ctx.fillRect(20, 795, 35, 35);
+      ctx.fillRect(1145, 795, 35, 35);
+
+      // Header Text
+      ctx.fillStyle = '#2563eb';
+      ctx.font = 'bold 20px "Plus Jakarta Sans", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('SERTIFIKAT KEHADIRAN RESMI', 600, 140);
+
+      ctx.fillStyle = '#0f172a';
+      ctx.font = 'bold 36px "Cinzel", serif';
+      ctx.fillText('CERTIFICATE OF PARTICIPATION', 600, 190);
+
+      ctx.fillStyle = '#64748b';
+      ctx.font = '16px "Plus Jakarta Sans", sans-serif';
+      ctx.fillText('Diberikan dengan penuh apresiasi dan penghargaan kepada:', 600, 250);
+
+      // Participant Name
+      ctx.fillStyle = '#0f172a';
+      ctx.font = 'bold 44px "Plus Jakarta Sans", sans-serif';
+      ctx.fillText(cert.participant_name.toUpperCase(), 600, 330);
+
+      // Decorative Line
+      ctx.beginPath();
+      ctx.moveTo(350, 360);
+      ctx.lineTo(850, 360);
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = '#2563eb';
+      ctx.stroke();
+
+      // Body text
+      ctx.fillStyle = '#334155';
+      ctx.font = '18px "Plus Jakarta Sans", sans-serif';
+      ctx.fillText('Atas partisipasi aktif dan kehadirannya dalam agenda konferensi akbar:', 600, 430);
+
+      // Event Title
+      ctx.fillStyle = '#1d4ed8';
+      ctx.font = 'bold 28px "Plus Jakarta Sans", sans-serif';
+      ctx.fillText(cert.event_title || 'Tech Summit & AI Conference 2026', 600, 480);
+
+      // Meta
+      ctx.fillStyle = '#64748b';
+      ctx.font = '14px "JetBrains Mono", monospace';
+      ctx.fillText(`Nomor Registrasi: ${cert.certificate_no}`, 600, 560);
+      ctx.fillText(`Kode Tiket: ${cert.ticket_code}`, 600, 590);
+
+      const d = new Date(cert.issued_at);
+      const dateStr = d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+
+      // Signatures
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#0f172a';
+      ctx.font = 'bold 16px "Plus Jakarta Sans", sans-serif';
+      ctx.fillText('Dr. Ir. Hendra Prasetyo, M.T.', 160, 710);
+      ctx.font = '13px "Plus Jakarta Sans", sans-serif';
+      ctx.fillStyle = '#64748b';
+      ctx.fillText('Ketua Panitia Pelaksana', 160, 730);
+
+      ctx.textAlign = 'right';
+      ctx.fillStyle = '#0f172a';
+      ctx.font = 'bold 16px "Plus Jakarta Sans", sans-serif';
+      ctx.fillText(`Diterbitkan pada: ${dateStr}`, 1040, 710);
+      ctx.font = '13px "Plus Jakarta Sans", sans-serif';
+      ctx.fillStyle = '#64748b';
+      ctx.fillText('Tervalidasi Digital oleh GateCheck Engine', 1040, 730);
+    }
+
+    function downloadCertPng() {
+      const canvas = document.getElementById('certCanvas');
+      const link = document.createElement('a');
+      link.download = `Sertifikat_${currentCertData.ticket_code}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    }
+
+    function printCert() {
+      const canvas = document.getElementById('certCanvas');
+      const win = window.open('', '_blank');
+      win.document.write(`<img src="${canvas.toDataURL()}" style="width:100%; max-width:1100px; margin:auto; display:block;" onload="window.print();window.close();"/>`);
+      win.document.close();
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gate Scanner Live - GateCheck (System 2)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+    #reader video {
+      border-radius: 1rem !important;
+      object-fit: cover !important;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col justify-between">
+
+  <!-- Scanner Header -->
+  <header class="bg-white border-b border-slate-200 px-4 sm:px-8 py-4 flex items-center justify-between shadow-sm">
+    <div class="flex items-center space-x-3">
+      <a href="/" class="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition border border-slate-200">
+        <i class="fa-solid fa-arrow-left"></i>
+      </a>
+      <div>
+        <h1 class="text-base sm:text-lg font-bold text-slate-900 flex items-center">
+          Scanner Kamera Gate
+          <span class="ml-2 w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+        </h1>
+        <p class="text-xs text-slate-500">Verifikasi tiket otomatis via API Website 1</p>
+      </div>
+    </div>
+
+    <!-- Dynamic Gate Selector -->
+    <div class="flex items-center space-x-2">
+      <label class="text-xs font-bold text-slate-500 hidden sm:block">Pos Gate Aktif:</label>
+      <select id="gateSelect" class="bg-slate-50 border border-slate-300 text-slate-800 text-xs font-bold py-2 px-3 rounded-xl focus:outline-none focus:border-blue-600">
+        <option value="Gate 1 - Pintu Utama">Gate 1 - Pintu Utama</option>
+        <option value="Gate 2 - Pintu Barat">Gate 2 - Pintu Barat</option>
+        <option value="Gate 3 - Pintu Timur">Gate 3 - Pintu Timur</option>
+        <option value="Gate VIP & Pembicara">Gate VIP & Pembicara</option>
+      </select>
+    </div>
+  </header>
+
+  <!-- Main Scanner Area -->
+  <main class="flex-1 max-w-xl w-full mx-auto p-4 flex flex-col justify-center">
+
+    <!-- Camera Box -->
+    <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm mb-4">
+      <div id="reader" class="overflow-hidden rounded-xl bg-slate-100 min-h-[300px] border border-slate-200"></div>
+
+      <!-- Scanner Status Line -->
+      <div class="mt-4 flex items-center justify-between text-xs text-slate-500 px-1">
+        <span id="scanStatusIndicator" class="flex items-center font-medium">
+          <i class="fa-solid fa-circle-dot text-emerald-600 mr-2 animate-ping"></i>
+          Kamera aktif, arahkan ke QR Code tiket
+        </span>
+        <button id="toggleCamBtn" onclick="toggleCamera()" class="text-blue-600 hover:text-blue-700 font-bold transition">
+          <i class="fa-solid fa-power-off mr-1"></i> Restart Kamera
+        </button>
+      </div>
+    </div>
+
+    <!-- Manual Code Fallback Input -->
+    <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
+      <div class="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">Input Manual (Fallback jika Barcode Rusak)</div>
+      <form id="manualForm" class="flex space-x-2">
+        <input type="text" id="manualTicketInput" placeholder="Contoh: EVT-2026-X8K9L"
+          class="flex-1 uppercase font-mono px-4 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:outline-none focus:border-blue-600">
+        <button type="submit" class="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition shadow-sm">
+          Verifikasi
+        </button>
+      </form>
+    </div>
+
+  </main>
+
+  <!-- Scan Result Overlay Modal -->
+  <div id="resultModal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div id="modalBox" class="bg-white border rounded-2xl max-w-md w-full p-6 text-center shadow-xl relative transition-all duration-200">
+      
+      <!-- Status Icon -->
+      <div id="modalIconBox" class="w-16 h-16 rounded-2xl mx-auto flex items-center justify-center text-3xl mb-3">
+        <i id="modalIcon" class="fa-solid fa-check"></i>
+      </div>
+
+      <div id="modalBadge" class="inline-block px-3 py-0.5 rounded text-xs font-bold uppercase tracking-wider mb-2">
+        STATUS
+      </div>
+
+      <h2 id="modalTitle" class="text-xl font-bold text-slate-900 mb-1">Pesan Verifikasi</h2>
+      <p id="modalSubtitle" class="text-xs text-slate-500 mb-4">Keterangan hasil pemindaian.</p>
+
+      <!-- Details Card -->
+      <div id="modalDetails" class="bg-slate-50 border border-slate-200 rounded-xl p-4 text-left text-xs space-y-2 mb-5">
+        <div class="flex justify-between">
+          <span class="text-slate-500">Kode Tiket:</span>
+          <span id="detailTicketCode" class="font-mono font-bold text-slate-900">-</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-500">Nama:</span>
+          <span id="detailName" class="font-bold text-slate-900">-</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-500">Waktu Scan:</span>
+          <span id="detailTime" class="text-slate-700">-</span>
+        </div>
+        <div class="flex justify-between" id="certRow">
+          <span class="text-slate-500">No. Sertifikat:</span>
+          <span id="detailCert" class="font-mono font-bold text-blue-600">-</span>
+        </div>
+      </div>
+
+      <button onclick="dismissModal()" class="w-full py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs transition border border-slate-200">
+        Lanjutkan Scan (Space / Enter)
+      </button>
+
+    </div>
+  </div>
+
+  <footer class="bg-white border-t border-slate-200 py-3 text-center text-[11px] text-slate-500">
+    GateCheck • Terintegrasi langsung dengan Database 1 (Landing Page) & Database 2 (Audit Logs)
+  </footer>
+
+  <script src="/js/audio.js"></script>
+  <script>
+    let html5QrCode = null;
+    let isProcessing = false;
+    let autoResumeTimer = null;
+
+    async function handleScan(ticketCode) {
+      if (isProcessing) return;
+      isProcessing = true;
+
+      const gate = document.getElementById('gateSelect').value;
+      document.getElementById('scanStatusIndicator').innerHTML = `
+        <i class="fa-solid fa-spinner fa-spin text-blue-600 mr-2"></i>
+        Memverifikasi tiket dengan Website 1...
+      `;
+
+      try {
+        const res = await fetch('/api/scan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ticket_code: ticketCode, gate_name: gate })
+        });
+
+        const result = await res.json();
+        showResultModal(result, ticketCode);
+
+      } catch (err) {
+        console.error('Scan error:', err);
+        showResultModal({
+          success: false,
+          code: 'NETWORK_ERROR',
+          sound: 'error',
+          message: 'Gagal menghubungi server backend scanner.'
+        }, ticketCode);
+      }
+    }
+
+    function showResultModal(res, ticketCode) {
+      const modal = document.getElementById('resultModal');
+      const box = document.getElementById('modalBox');
+      const iconBox = document.getElementById('modalIconBox');
+      const icon = document.getElementById('modalIcon');
+      const badge = document.getElementById('modalBadge');
+      const title = document.getElementById('modalTitle');
+      const subtitle = document.getElementById('modalSubtitle');
+      const certRow = document.getElementById('certRow');
+
+      document.getElementById('detailTicketCode').innerText = ticketCode;
+      document.getElementById('detailName').innerText = (res.data && res.data.participant_name) ? res.data.participant_name : '-';
+      document.getElementById('detailTime').innerText = new Date().toLocaleTimeString('id-ID');
+
+      if (res.code === 'VALID') {
+        window.soundFx.playSuccess();
+        box.className = 'bg-white border-2 border-emerald-500 rounded-2xl max-w-md w-full p-6 text-center shadow-xl relative';
+        iconBox.className = 'w-16 h-16 rounded-2xl mx-auto flex items-center justify-center text-3xl mb-3 bg-emerald-100 text-emerald-600 border border-emerald-200';
+        icon.className = 'fa-solid fa-check';
+        badge.className = 'inline-block px-3 py-0.5 rounded text-xs font-bold uppercase tracking-wider mb-2 bg-emerald-100 text-emerald-800 border border-emerald-200';
+        badge.innerText = 'BERHASIL MASUK';
+        title.innerText = 'Tiket Valid!';
+        subtitle.innerText = res.message;
+        certRow.classList.remove('hidden');
+        document.getElementById('detailCert').innerText = (res.data && res.data.certificate_no) ? res.data.certificate_no : 'Telah Diterbitkan';
+
+      } else if (res.code === 'ALREADY_ATTENDED') {
+        window.soundFx.playWarning();
+        box.className = 'bg-white border-2 border-amber-500 rounded-2xl max-w-md w-full p-6 text-center shadow-xl relative';
+        iconBox.className = 'w-16 h-16 rounded-2xl mx-auto flex items-center justify-center text-3xl mb-3 bg-amber-100 text-amber-600 border border-amber-200';
+        icon.className = 'fa-solid fa-triangle-exclamation';
+        badge.className = 'inline-block px-3 py-0.5 rounded text-xs font-bold uppercase tracking-wider mb-2 bg-amber-100 text-amber-800 border border-amber-200';
+        badge.innerText = 'PERINGATAN: TIKET GANDA';
+        title.innerText = 'Sudah Pernah Masuk!';
+        subtitle.innerText = res.message;
+        certRow.classList.add('hidden');
+
+      } else {
+        window.soundFx.playError();
+        box.className = 'bg-white border-2 border-rose-500 rounded-2xl max-w-md w-full p-6 text-center shadow-xl relative';
+        iconBox.className = 'w-16 h-16 rounded-2xl mx-auto flex items-center justify-center text-3xl mb-3 bg-rose-100 text-rose-600 border border-rose-200';
+        icon.className = 'fa-solid fa-xmark';
+        badge.className = 'inline-block px-3 py-0.5 rounded text-xs font-bold uppercase tracking-wider mb-2 bg-rose-100 text-rose-800 border border-rose-200';
+        badge.innerText = 'AKSES DITOLAK';
+        title.innerText = 'Tiket Tidak Valid!';
+        subtitle.innerText = res.message || 'Tiket palsu atau tidak terdaftar.';
+        certRow.classList.add('hidden');
+      }
+
+      modal.classList.remove('hidden');
+
+      clearTimeout(autoResumeTimer);
+      autoResumeTimer = setTimeout(() => {
+        dismissModal();
+      }, 3500);
+    }
+
+    function dismissModal() {
+      clearTimeout(autoResumeTimer);
+      document.getElementById('resultModal').classList.add('hidden');
+      document.getElementById('scanStatusIndicator').innerHTML = `
+        <i class="fa-solid fa-circle-dot text-emerald-600 mr-2 animate-ping"></i>
+        Kamera aktif, siap memindai QR selanjutnya
+      `;
+      setTimeout(() => {
+        isProcessing = false;
+      }, 500);
+    }
+
+    document.getElementById('manualForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const code = document.getElementById('manualTicketInput').value.trim();
+      if (code) {
+        handleScan(code);
+        document.getElementById('manualTicketInput').value = '';
+      }
+    });
+
+    function initScanner() {
+      html5QrCode = new Html5Qrcode("reader");
+      const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+
+      html5QrCode.start(
+        { facingMode: "environment" },
+        config,
+        (decodedText) => {
+          handleScan(decodedText);
+        },
+        () => {}
+      ).catch((err) => {
+        console.warn('Camera permission:', err);
+        document.getElementById('scanStatusIndicator').innerHTML = `
+          <span class="text-amber-700 font-semibold">
+            <i class="fa-solid fa-circle-exclamation mr-1"></i> Izin kamera tidak aktif. Gunakan input manual di bawah.
+          </span>
+        `;
+      });
+    }
+
+    function toggleCamera() {
+      if (html5QrCode && html5QrCode.isScanning) {
+        html5QrCode.stop().then(() => initScanner());
+      } else {
+        initScanner();
+      }
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if ((e.code === 'Space' || e.code === 'Enter') && !document.getElementById('resultModal').classList.contains('hidden')) {
+        e.preventDefault();
+        dismissModal();
+      }
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+      initScanner();
+    });
+  </script>
+</body>
+</html>

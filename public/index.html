@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GateCheck Admin - Dashboard Kontrol Operasional & Integrasi</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen">
+
+  <div class="flex h-screen overflow-hidden">
+
+    <!-- Sidebar Navigation (Style Vylogix CRM) -->
+    <aside class="w-64 bg-white border-r border-slate-200 flex flex-col justify-between hidden md:flex shrink-0">
+      <div>
+        <!-- Logo Header -->
+        <div class="h-20 flex items-center px-6 border-b border-slate-100 space-x-3">
+          <div class="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-sm font-bold text-lg">
+            <i class="fa-solid fa-shield-halved"></i>
+          </div>
+          <div>
+            <div class="font-extrabold text-base tracking-tight text-slate-900">GateCheck</div>
+            <div class="text-[10px] text-blue-600 font-bold uppercase tracking-wider">System 2 • Admin</div>
+          </div>
+        </div>
+
+        <!-- Navigation Menus -->
+        <nav class="p-4 space-y-1 text-sm font-semibold">
+          <a href="/" class="flex items-center space-x-3 px-4 py-2.5 rounded-xl bg-blue-50 text-blue-700 font-bold border border-blue-100 transition">
+            <i class="fa-solid fa-chart-pie w-5 text-center"></i>
+            <span>Dashboard</span>
+          </a>
+          <a href="/scanner.html" class="flex items-center space-x-3 px-4 py-2.5 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition">
+            <i class="fa-solid fa-qrcode w-5 text-center"></i>
+            <span>Scanner Kamera</span>
+            <span class="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-blue-600 text-white font-bold">LIVE</span>
+          </a>
+          <a href="/logs.html" class="flex items-center space-x-3 px-4 py-2.5 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition">
+            <i class="fa-solid fa-list-check w-5 text-center"></i>
+            <span>Audit Scan Logs</span>
+          </a>
+          <a href="/claim.html" target="_blank" class="flex items-center space-x-3 px-4 py-2.5 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition">
+            <i class="fa-solid fa-award w-5 text-center"></i>
+            <span>Portal Sertifikat</span>
+            <i class="fa-solid fa-arrow-up-right-from-square text-[10px] ml-auto text-slate-400"></i>
+          </a>
+        </nav>
+      </div>
+
+      <!-- System 1 Integration Status Indicator -->
+      <div class="p-4 border-t border-slate-100">
+        <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs">
+          <div class="flex items-center justify-between mb-1.5">
+            <span class="text-slate-500 font-semibold text-[11px]">Koneksi ke Web 1</span>
+            <span id="apiStatusBadge" class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
+          </div>
+          <div class="font-mono text-[11px] text-slate-700 font-bold truncate" id="apiEndpointText">
+            http://localhost:3000
+          </div>
+          <div class="text-[10px] text-slate-500 mt-1" id="apiStatusText">Mengecek koneksi...</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 overflow-y-auto">
+      
+      <!-- Topbar Header -->
+      <header class="h-20 bg-white border-b border-slate-200 px-6 sm:px-8 flex items-center justify-between sticky top-0 z-30">
+        <div>
+          <h1 class="text-xl font-extrabold text-slate-900">Monitoring Gate & Kehadiran</h1>
+          <p class="text-xs text-slate-500">Sinkronisasi Realtime dengan Database Registrasi (System 1)</p>
+        </div>
+        <div class="flex items-center space-x-3">
+          <button onclick="fetchStats()" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition flex items-center border border-slate-200">
+            <i class="fa-solid fa-rotate mr-2" id="refreshIcon"></i> Sinkronkan Data
+          </button>
+          <a href="/scanner.html" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition shadow-sm flex items-center">
+            <i class="fa-solid fa-camera mr-2"></i> Buka Scanner
+          </a>
+        </div>
+      </header>
+
+      <div class="p-6 sm:p-8 space-y-6 max-w-7xl mx-auto">
+
+        <!-- Banner Info Event dari System 1 -->
+        <div class="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <div class="inline-flex items-center space-x-2 px-2.5 py-0.5 rounded-md bg-blue-50 border border-blue-200 text-xs font-bold text-blue-700 mb-2">
+              <i class="fa-solid fa-link"></i>
+              <span>Data Terhubung dari Website 1 (EventHub API)</span>
+            </div>
+            <h2 id="summaryEventTitle" class="text-2xl font-extrabold text-slate-900">Tech Summit & AI Conference 2026</h2>
+            <p class="text-xs text-slate-500 mt-1">Total Kuota Acara: <span id="summaryQuota" class="font-bold text-slate-800">0</span> Kursi</p>
+          </div>
+          
+          <div class="flex items-center space-x-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+            <div class="text-center px-3 border-r border-slate-200">
+              <div class="text-[10px] uppercase font-bold text-slate-500">Pendaftar (DB 1)</div>
+              <div id="statRegistered" class="text-xl font-extrabold text-blue-600">0</div>
+            </div>
+            <div class="text-center px-3 border-r border-slate-200">
+              <div class="text-[10px] uppercase font-bold text-slate-500">Telah Hadir</div>
+              <div id="statAttended" class="text-xl font-extrabold text-emerald-600">0</div>
+            </div>
+            <div class="text-center px-3">
+              <div class="text-[10px] uppercase font-bold text-slate-500">Belum Hadir</div>
+              <div id="statNotAttended" class="text-xl font-extrabold text-amber-600">0</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4 Grid Stat Cards (Metrics Database 2) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          
+          <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Total Scan Gate</span>
+              <div class="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100">
+                <i class="fa-solid fa-barcode"></i>
+              </div>
+            </div>
+            <div class="text-2xl font-extrabold text-slate-900" id="cardTotalScanned">0</div>
+            <div class="text-[11px] text-slate-500 mt-1">Semua percobaan di pintu masuk</div>
+          </div>
+
+          <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Check-in Valid</span>
+              <div class="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100">
+                <i class="fa-solid fa-user-check"></i>
+              </div>
+            </div>
+            <div class="text-2xl font-extrabold text-emerald-600" id="cardValidAttendees">0</div>
+            <div class="text-[11px] text-slate-500 mt-1">Peserta resmi lolos masuk</div>
+          </div>
+
+          <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Duplikat Terdeteksi</span>
+              <div class="w-9 h-9 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-100">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+              </div>
+            </div>
+            <div class="text-2xl font-extrabold text-amber-600" id="cardDuplicates">0</div>
+            <div class="text-[11px] text-slate-500 mt-1">Percobaan scan tiket ganda</div>
+          </div>
+
+          <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Sertifikat Terbit</span>
+              <div class="w-9 h-9 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100">
+                <i class="fa-solid fa-certificate"></i>
+              </div>
+            </div>
+            <div class="text-2xl font-extrabold text-indigo-600" id="cardCerts">0</div>
+            <div class="text-[11px] text-slate-500 mt-1">Dapat diklaim oleh peserta</div>
+          </div>
+
+        </div>
+
+        <!-- Recent Audit Logs Table -->
+        <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+          <div class="p-6 border-b border-slate-100 flex justify-between items-center">
+            <div>
+              <h3 class="font-bold text-lg text-slate-900">Log Aktivitas Scan Lapangan (Database 2)</h3>
+              <p class="text-xs text-slate-500">Pembaruan realtime saat scanner gate memindai barcode.</p>
+            </div>
+            <a href="/logs.html" class="text-xs font-bold text-blue-600 hover:text-blue-700 transition">
+              Lihat Semua Log <i class="fa-solid fa-arrow-right ml-1"></i>
+            </a>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-50 text-slate-600 font-bold uppercase tracking-wider border-b border-slate-200">
+                <tr>
+                  <th class="py-3 px-6">Waktu</th>
+                  <th class="py-3 px-6">Kode Tiket</th>
+                  <th class="py-3 px-6">Nama Peserta</th>
+                  <th class="py-3 px-6">Pos Gate</th>
+                  <th class="py-3 px-6">Status Verifikasi</th>
+                </tr>
+              </thead>
+              <tbody id="logsTableBody" class="divide-y divide-slate-100 text-slate-700">
+                <tr>
+                  <td colspan="5" class="py-6 text-center text-slate-400">Memuat log scanner...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+    </main>
+  </div>
+
+  <script>
+    async function fetchStats() {
+      const icon = document.getElementById('refreshIcon');
+      icon.classList.add('fa-spin');
+
+      try {
+        const res = await fetch('/api/stats');
+        const data = await res.json();
+
+        if (data.success) {
+          const s = data.stats;
+          document.getElementById('cardTotalScanned').innerText = s.total_scanned_logs;
+          document.getElementById('cardValidAttendees').innerText = s.valid_attendees;
+          document.getElementById('cardDuplicates').innerText = s.duplicate_attempts;
+          document.getElementById('cardCerts').innerText = s.certificates_issued;
+
+          // Connection indicator
+          const badge = document.getElementById('apiStatusBadge');
+          const statusTxt = document.getElementById('apiStatusText');
+          if (s.is_connected_to_landing) {
+            badge.className = 'w-2.5 h-2.5 rounded-full bg-emerald-500';
+            statusTxt.innerText = 'Terhubung ke Website 1';
+            statusTxt.className = 'text-[10px] text-emerald-600 font-bold mt-1';
+          } else {
+            badge.className = 'w-2.5 h-2.5 rounded-full bg-rose-500';
+            statusTxt.innerText = 'Website 1 Tidak Terjangkau';
+            statusTxt.className = 'text-[10px] text-rose-600 font-bold mt-1';
+          }
+
+          // Landing Summary
+          if (s.landing_summary) {
+            const l = s.landing_summary;
+            document.getElementById('summaryEventTitle').innerText = l.event_title;
+            document.getElementById('summaryQuota').innerText = l.quota;
+            document.getElementById('statRegistered').innerText = l.total_registered;
+            document.getElementById('statAttended').innerText = l.total_attended;
+            document.getElementById('statNotAttended').innerText = l.not_attended_yet;
+          }
+        }
+      } catch (err) {
+        console.error('Fetch stats error:', err);
+      } finally {
+        setTimeout(() => icon.classList.remove('fa-spin'), 600);
+      }
+    }
+
+    async function fetchRecentLogs() {
+      try {
+        const res = await fetch('/api/logs?limit=8');
+        const data = await res.json();
+        const tbody = document.getElementById('logsTableBody');
+
+        if (!data.success || !data.logs || data.logs.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="5" class="py-6 text-center text-slate-400">Belum ada aktivitas scan hari ini.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = data.logs.map(log => {
+          let badge = '';
+          if (log.scan_status === 'VALID') {
+            badge = '<span class="px-2.5 py-0.5 rounded font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">BERHASIL MASUK</span>';
+          } else if (log.scan_status === 'ALREADY_ATTENDED') {
+            badge = '<span class="px-2.5 py-0.5 rounded font-bold bg-amber-100 text-amber-800 border border-amber-200">DUPLIKAT (SUDAH HADIR)</span>';
+          } else {
+            badge = '<span class="px-2.5 py-0.5 rounded font-bold bg-rose-100 text-rose-800 border border-rose-200">TIDAK VALID</span>';
+          }
+
+          const time = new Date(log.scanned_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+          return `
+            <tr class="hover:bg-slate-50 transition">
+              <td class="py-3 px-6 font-mono text-slate-500">${time}</td>
+              <td class="py-3 px-6 font-mono font-bold text-slate-900">${log.ticket_code}</td>
+              <td class="py-3 px-6 font-semibold text-slate-800">${log.participant_name || '-'}</td>
+              <td class="py-3 px-6 text-slate-600">${log.gate_name}</td>
+              <td class="py-3 px-6">${badge}</td>
+            </tr>
+          `;
+        }).join('');
+
+      } catch (err) {
+        console.error('Fetch logs error:', err);
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      fetchStats();
+      fetchRecentLogs();
+      setInterval(() => {
+        fetchStats();
+        fetchRecentLogs();
+      }, 10000);
+    });
+  </script>
+</body>
+</html>
