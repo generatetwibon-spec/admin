@@ -171,19 +171,36 @@
 
         </div>
 
-        <!-- Recent Audit Logs Table -->
+        <!-- Dual Database Interactive Table Tabs -->
         <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
-          <div class="p-6 border-b border-slate-100 flex justify-between items-center">
-            <div>
-              <h3 class="font-bold text-lg text-slate-900">Log Aktivitas Scan Lapangan (Database 2)</h3>
-              <p class="text-xs text-slate-500">Pembaruan realtime saat scanner gate memindai barcode.</p>
+          
+          <!-- Tab Navigation Header -->
+          <div class="p-4 sm:p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            
+            <div class="flex items-center space-x-2 bg-slate-100 p-1 rounded-xl">
+              <button onclick="switchTab('logs')" id="tabBtnLogs"
+                class="px-4 py-2 rounded-lg text-xs font-bold transition shadow-sm bg-white text-blue-700">
+                <i class="fa-solid fa-barcode mr-1.5"></i> Log Scan Gate (Database 2)
+              </button>
+              <button onclick="switchTab('participants')" id="tabBtnParticipants"
+                class="px-4 py-2 rounded-lg text-xs font-bold transition text-slate-600 hover:text-slate-900">
+                <i class="fa-solid fa-users mr-1.5"></i> Semua Pendaftar (Database 1)
+              </button>
             </div>
-            <a href="/logs.html" class="text-xs font-bold text-blue-600 hover:text-blue-700 transition">
-              Lihat Semua Log <i class="fa-solid fa-arrow-right ml-1"></i>
-            </a>
+
+            <div id="tabActionContainer">
+              <a href="/logs.html" id="viewAllLogsLink" class="text-xs font-bold text-blue-600 hover:text-blue-700 transition">
+                Lihat Semua Log <i class="fa-solid fa-arrow-right ml-1"></i>
+              </a>
+              <span id="participantsCountText" class="hidden text-xs font-bold text-slate-500">
+                Memuat data peserta...
+              </span>
+            </div>
+
           </div>
 
-          <div class="overflow-x-auto">
+          <!-- VIEW TAB 1: LOG SCAN LAPANGAN (DATABASE 2) -->
+          <div id="viewLogs" class="overflow-x-auto">
             <table class="w-full text-left text-xs">
               <thead class="bg-slate-50 text-slate-600 font-bold uppercase tracking-wider border-b border-slate-200">
                 <tr>
@@ -201,6 +218,28 @@
               </tbody>
             </table>
           </div>
+
+          <!-- VIEW TAB 2: DAFTAR SELURUH PESERTA (DATABASE 1 VIA API) -->
+          <div id="viewParticipants" class="overflow-x-auto hidden">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-50 text-slate-600 font-bold uppercase tracking-wider border-b border-slate-200">
+                <tr>
+                  <th class="py-3 px-6">Waktu Daftar</th>
+                  <th class="py-3 px-6">Kode Tiket</th>
+                  <th class="py-3 px-6">Nama Peserta</th>
+                  <th class="py-3 px-6">Email / WhatsApp</th>
+                  <th class="py-3 px-6">Instansi</th>
+                  <th class="py-3 px-6">Status Presensi</th>
+                </tr>
+              </thead>
+              <tbody id="participantsTableBody" class="divide-y divide-slate-100 text-slate-700">
+                <tr>
+                  <td colspan="6" class="py-6 text-center text-slate-400">Memuat daftar peserta dari Database 1...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
         </div>
 
       </div>
@@ -293,12 +332,86 @@
       }
     }
 
+    let activeTab = 'logs';
+
+    function switchTab(tab) {
+      activeTab = tab;
+      const btnLogs = document.getElementById('tabBtnLogs');
+      const btnParts = document.getElementById('tabBtnParticipants');
+      const viewLogs = document.getElementById('viewLogs');
+      const viewParts = document.getElementById('viewParticipants');
+      const linkLogs = document.getElementById('viewAllLogsLink');
+      const textParts = document.getElementById('participantsCountText');
+
+      if (tab === 'logs') {
+        btnLogs.className = 'px-4 py-2 rounded-lg text-xs font-bold transition shadow-sm bg-white text-blue-700';
+        btnParts.className = 'px-4 py-2 rounded-lg text-xs font-bold transition text-slate-600 hover:text-slate-900';
+        viewLogs.classList.remove('hidden');
+        viewParts.classList.add('hidden');
+        linkLogs.classList.remove('hidden');
+        textParts.classList.add('hidden');
+        fetchRecentLogs();
+      } else {
+        btnParts.className = 'px-4 py-2 rounded-lg text-xs font-bold transition shadow-sm bg-white text-blue-700';
+        btnLogs.className = 'px-4 py-2 rounded-lg text-xs font-bold transition text-slate-600 hover:text-slate-900';
+        viewParts.classList.remove('hidden');
+        viewLogs.classList.add('hidden');
+        linkLogs.classList.add('hidden');
+        textParts.classList.remove('hidden');
+        fetchParticipants();
+      }
+    }
+
+    async function fetchParticipants() {
+      try {
+        const res = await fetch('/api/participants');
+        const data = await res.json();
+        const tbody = document.getElementById('participantsTableBody');
+        const countText = document.getElementById('participantsCountText');
+
+        if (!data.success || !data.participants || data.participants.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" class="py-8 text-center text-slate-400">Belum ada peserta yang mendaftar di Database 1.</td></tr>';
+          countText.innerText = '0 Pendaftar Terdata';
+          return;
+        }
+
+        countText.innerText = `${data.participants.length} Pendaftar Terdata (Database 1)`;
+
+        tbody.innerHTML = data.participants.map(p => {
+          let badge = '';
+          if (p.status === 'attended') {
+            const time = p.attended_at ? new Date(p.attended_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '';
+            badge = `<span class="px-2.5 py-0.5 rounded font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">HADIR (${time})</span>`;
+          } else {
+            badge = `<span class="px-2.5 py-0.5 rounded font-bold bg-amber-100 text-amber-800 border border-amber-200">BELUM HADIR</span>`;
+          }
+
+          const regDate = new Date(p.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+
+          return `
+            <tr class="hover:bg-slate-50 transition">
+              <td class="py-3 px-6 font-mono text-slate-500">${regDate}</td>
+              <td class="py-3 px-6 font-mono font-bold text-slate-900">${p.ticket_code}</td>
+              <td class="py-3 px-6 font-semibold text-slate-800">${p.participant_name}</td>
+              <td class="py-3 px-6 text-slate-500">${p.participant_email}<br><span class="text-[10px] text-slate-400 font-mono">${p.participant_phone}</span></td>
+              <td class="py-3 px-6 text-slate-600">${p.institution || '-'}</td>
+              <td class="py-3 px-6">${badge}</td>
+            </tr>
+          `;
+        }).join('');
+
+      } catch (err) {
+        console.error('Fetch participants error:', err);
+      }
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
       fetchStats();
       fetchRecentLogs();
       setInterval(() => {
         fetchStats();
-        fetchRecentLogs();
+        if (activeTab === 'logs') fetchRecentLogs();
+        if (activeTab === 'participants') fetchParticipants();
       }, 10000);
     });
   </script>

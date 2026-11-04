@@ -167,6 +167,22 @@ app.post('/api/scan', async (req, res) => {
 });
 
 // -------------------------------------------------------------
+// GET DAFTAR PESERTA TERDAFTAR (DITARIK DARI DATABASE 1 VIA API)
+// -------------------------------------------------------------
+app.get('/api/participants', async (req, res) => {
+  try {
+    const resp = await axios.get(`${LANDING_API_URL}/participants`, {
+      headers: { 'Authorization': `Bearer ${LANDING_API_KEY}` },
+      timeout: 5000
+    });
+    res.json(resp.data);
+  } catch (err) {
+    console.error('[Admin /api/participants] Error:', err.message);
+    res.status(502).json({ success: false, message: 'Gagal mengambil data dari Landing Page: ' + err.message });
+  }
+});
+
+// -------------------------------------------------------------
 // GET RECENT AUDIT SCAN LOGS (DARI DATABASE 2)
 // -------------------------------------------------------------
 app.get('/api/logs', async (req, res) => {
