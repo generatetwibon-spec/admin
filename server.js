@@ -12,8 +12,13 @@ const app = express();
 const PORT = process.env.PORT || 4000;
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_KEY;
-const LANDING_API_URL = process.env.LANDING_API_URL || 'http://localhost:3000/api';
-const LANDING_API_KEY = process.env.LANDING_API_KEY || 'eventhub_super_secret_token_2026';
+// Normalisasi otomatis URL Landing Page (kebal salah ketik / trailing slash / lupa /api)
+let rawLandingUrl = (process.env.LANDING_API_URL || 'http://localhost:3000/api').trim().replace(/\/+$/, '');
+if (!rawLandingUrl.endsWith('/api')) {
+  rawLandingUrl += '/api';
+}
+const LANDING_API_URL = rawLandingUrl;
+const LANDING_API_KEY = (process.env.LANDING_API_KEY || 'eventhub_super_secret_token_2026').trim();
 
 if (!SUPABASE_URL || !SUPABASE_KEY) {
   console.error('[Admin] ERROR: SUPABASE_URL and SUPABASE_KEY must be provided in .env');
@@ -258,6 +263,7 @@ app.get('/api/stats', async (req, res) => {
         duplicate_attempts: duplicateScanned || 0,
         certificates_issued: certCount || 0,
         is_connected_to_landing: isConnectedToLanding,
+        landing_url: LANDING_API_URL,
         landing_summary: landingStats
       }
     });

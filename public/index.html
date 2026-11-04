@@ -266,6 +266,11 @@
           // Connection indicator
           const badge = document.getElementById('apiStatusBadge');
           const statusTxt = document.getElementById('apiStatusText');
+          const endpointTxt = document.getElementById('apiEndpointText');
+          if (endpointTxt && s.landing_url) {
+            endpointTxt.innerText = s.landing_url;
+          }
+
           if (s.is_connected_to_landing) {
             badge.className = 'w-2.5 h-2.5 rounded-full bg-emerald-500';
             statusTxt.innerText = 'Terhubung ke Website 1';
