@@ -290,3 +290,5 @@ app.listen(PORT, () => {
   console.log(`Connected to Website 1 API: ${LANDING_API_URL}`);
   console.log(`====================================================`);
 });
+
+module.exports = app;
