@@ -277,6 +277,45 @@ app.get('/api/certificate/:code', async (req, res) => {
   }
 });
 
+// -------------------------------------------------------------
+// EVENT SETTINGS (INTEGRASI DUA ARAH KE WEBSITE 1)
+// -------------------------------------------------------------
+app.get('/api/settings', async (req, res) => {
+  try {
+    const resp = await axios.get(`${LANDING_API_URL}/event`, {
+      timeout: 5000
+    });
+    if (resp.data && resp.data.success) {
+      return res.json({ success: true, event: resp.data.event });
+    }
+    res.status(502).json({ success: false, message: 'Gagal mengambil data event dari Website 1.' });
+  } catch (err) {
+    console.error('[Admin GET /api/settings] Error:', err.message);
+    res.status(503).json({ success: false, message: 'Tidak dapat terhubung ke Website 1: ' + err.message });
+  }
+});
+
+app.post('/api/settings', async (req, res) => {
+  try {
+    const payload = req.body;
+    console.log('[Admin -> Landing API] Updating event settings:', payload);
+
+    const resp = await axios.put(`${LANDING_API_URL}/event/settings`, payload, {
+      headers: {
+        'Authorization': `Bearer ${LANDING_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      timeout: 5000
+    });
+
+    res.json(resp.data);
+  } catch (err) {
+    console.error('[Admin POST /api/settings] Error:', err.message);
+    const msg = (err.response && err.response.data && err.response.data.message) || err.message;
+    res.status(502).json({ success: false, message: 'Gagal menyimpan pengaturan ke Website 1: ' + msg });
+  }
+});
+
 // Fallback route
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));

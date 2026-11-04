@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pengaturan Acara - GateCheck Admin (System 2)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen">
+
+  <div class="flex h-screen overflow-hidden">
+
+    <!-- Sidebar Navigation (Style Vylogix CRM) -->
+    <aside class="w-64 bg-white border-r border-slate-200 flex flex-col justify-between hidden md:flex shrink-0">
+      <div>
+        <!-- Logo Header -->
+        <div class="h-20 flex items-center px-6 border-b border-slate-100 space-x-3">
+          <div class="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-sm font-bold text-lg">
+            <i class="fa-solid fa-shield-halved"></i>
+          </div>
+          <div>
+            <div class="font-extrabold text-base tracking-tight text-slate-900">GateCheck</div>
+            <div class="text-[10px] text-blue-600 font-bold uppercase tracking-wider">System 2 • Admin</div>
+          </div>
+        </div>
+
+        <!-- Navigation Menus -->
+        <nav class="p-4 space-y-1 text-sm font-semibold">
+          <a href="/" class="flex items-center space-x-3 px-4 py-2.5 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition">
+            <i class="fa-solid fa-chart-pie w-5 text-center"></i>
+            <span>Dashboard</span>
+          </a>
+          <a href="/scanner.html" class="flex items-center space-x-3 px-4 py-2.5 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition">
+            <i class="fa-solid fa-qrcode w-5 text-center"></i>
+            <span>Scanner Kamera</span>
+            <span class="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-blue-600 text-white font-bold">LIVE</span>
+          </a>
+          <a href="/logs.html" class="flex items-center space-x-3 px-4 py-2.5 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition">
+            <i class="fa-solid fa-list-check w-5 text-center"></i>
+            <span>Audit Scan Logs</span>
+          </a>
+          <a href="/settings.html" class="flex items-center space-x-3 px-4 py-2.5 rounded-xl bg-blue-50 text-blue-700 font-bold border border-blue-100 transition">
+            <i class="fa-solid fa-gear w-5 text-center"></i>
+            <span>Pengaturan Acara</span>
+          </a>
+          <a href="/claim.html" target="_blank" class="flex items-center space-x-3 px-4 py-2.5 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition">
+            <i class="fa-solid fa-award w-5 text-center"></i>
+            <span>Portal Sertifikat</span>
+            <i class="fa-solid fa-arrow-up-right-from-square text-[10px] ml-auto text-slate-400"></i>
+          </a>
+        </nav>
+      </div>
+
+      <!-- System 1 Integration Status Indicator -->
+      <div class="p-4 border-t border-slate-100">
+        <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs">
+          <div class="flex items-center justify-between mb-1.5">
+            <span class="text-slate-500 font-semibold text-[11px]">Koneksi ke Web 1</span>
+            <span id="apiStatusBadge" class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+          </div>
+          <div class="font-mono text-[11px] text-slate-700 font-bold truncate">
+            Sinkronisasi Dua Arah
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 overflow-y-auto">
+      
+      <!-- Topbar Header -->
+      <header class="h-20 bg-white border-b border-slate-200 px-6 sm:px-8 flex items-center justify-between sticky top-0 z-30">
+        <div>
+          <h1 class="text-xl font-extrabold text-slate-900">Pengaturan Acara & E-Sertifikat</h1>
+          <p class="text-xs text-slate-500">Ubah data master acara & pemateri yang langsung tersinkron ke Website 1 (Landing Page)</p>
+        </div>
+        <div class="flex items-center space-x-3">
+          <a href="/" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition border border-slate-200">
+            <i class="fa-solid fa-arrow-left mr-1.5"></i> Kembali ke Dashboard
+          </a>
+        </div>
+      </header>
+
+      <div class="p-6 sm:p-8 max-w-4xl mx-auto space-y-6">
+
+        <!-- Banner Info Integrasi -->
+        <div class="p-4 rounded-xl bg-blue-50 border border-blue-200 text-xs text-blue-800 flex items-center space-x-3">
+          <div class="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center shrink-0 text-base">
+            <i class="fa-solid fa-network-wired"></i>
+          </div>
+          <div>
+            <strong>Integrasi Dua Arah Aktif:</strong> Setiap perubahan judul, kuota, tanggal, dan nama pemateri di halaman ini akan otomatis di-update ke Database 1 (Landing Page) via REST API.
+          </div>
+        </div>
+
+        <!-- Settings Form Card -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-sm">
+          
+          <form id="settingsForm" class="space-y-6">
+            
+            <!-- SECTION 1: MASTER DATA ACARA -->
+            <div>
+              <h3 class="text-base font-bold text-slate-900 mb-1 flex items-center">
+                <i class="fa-solid fa-calendar-day text-blue-600 mr-2"></i> Informasi Utama Acara
+              </h3>
+              <p class="text-xs text-slate-500 mb-4">Informasi ini tampil di halaman publik pendaftaran.</p>
+
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">Judul Acara</label>
+                  <input type="text" id="inputTitle" required
+                    class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:outline-none focus:border-blue-600">
+                </div>
+
+                <div>
+                  <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">Deskripsi Singkat</label>
+                  <textarea id="inputDescription" rows="3"
+                    class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:outline-none focus:border-blue-600"></textarea>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">Tanggal Acara</label>
+                    <input type="datetime-local" id="inputDate" required
+                      class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:outline-none focus:border-blue-600">
+                  </div>
+                  <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">Lokasi Gedung / Ruang</label>
+                    <input type="text" id="inputLocation" required
+                      class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:outline-none focus:border-blue-600">
+                  </div>
+                  <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">Kuota Maksimal Peserta</label>
+                    <input type="number" id="inputQuota" min="1" required
+                      class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:outline-none focus:border-blue-600">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <hr class="border-slate-100">
+
+            <!-- SECTION 2: PEMATERI & TANDA TANGAN SERTIFIKAT -->
+            <div>
+              <h3 class="text-base font-bold text-slate-900 mb-1 flex items-center">
+                <i class="fa-solid fa-signature text-blue-600 mr-2"></i> Konfigurasi Penandatangan E-Sertifikat
+              </h3>
+              <p class="text-xs text-slate-500 mb-4">Nama dan jabatan ini otomatis dicetak di bagian bawah lembar sertifikat.</p>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">Nama Pemateri / Speaker</label>
+                  <input type="text" id="inputSpeakerName" required placeholder="Contoh: Mohammad Mahatir Munir"
+                    class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 font-bold focus:outline-none focus:border-blue-600">
+                  <span class="text-[11px] text-slate-500 mt-1 block">Default: <strong>Mohammad Mahatir Munir</strong></span>
+                </div>
+
+                <div>
+                  <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">Jabatan / Gelar Pemateri</label>
+                  <input type="text" id="inputSpeakerTitle" required placeholder="Contoh: Keynote Speaker & AI Specialist"
+                    class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:outline-none focus:border-blue-600">
+                </div>
+
+                <div class="sm:col-span-2">
+                  <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">Nama Ketua Panitia Pelaksana</label>
+                  <input type="text" id="inputCommitteeChair" required placeholder="Contoh: Dr. Ir. Hendra Prasetyo, M.T."
+                    class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 focus:outline-none focus:border-blue-600">
+                </div>
+              </div>
+            </div>
+
+            <div id="saveAlert" class="hidden p-4 rounded-xl text-xs font-bold"></div>
+
+            <div class="pt-4 flex justify-end">
+              <button type="submit" id="saveBtn"
+                class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-xl transition shadow-sm flex items-center">
+                <i class="fa-solid fa-floppy-disk mr-2"></i> Simpan Pengaturan & Sinkronkan ke Web 1
+              </button>
+            </div>
+
+          </form>
+
+        </div>
+
+      </div>
+
+    </main>
+  </div>
+
+  <script>
+    async function loadSettings() {
+      try {
+        const res = await fetch('/api/settings');
+        const data = await res.json();
+
+        if (data.success && data.event) {
+          const e = data.event;
+          document.getElementById('inputTitle').value = e.title || '';
+          document.getElementById('inputDescription').value = e.description || '';
+          
+          if (e.event_date) {
+            const d = new Date(e.event_date);
+            const iso = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+            document.getElementById('inputDate').value = iso;
+          }
+
+          document.getElementById('inputLocation').value = e.location || '';
+          document.getElementById('inputQuota').value = e.quota || 150;
+          document.getElementById('inputSpeakerName').value = e.speaker_name || 'Mohammad Mahatir Munir';
+          document.getElementById('inputSpeakerTitle').value = e.speaker_title || 'Keynote Speaker & AI Specialist';
+          document.getElementById('inputCommitteeChair').value = e.committee_chair || 'Dr. Ir. Hendra Prasetyo, M.T.';
+        }
+      } catch (err) {
+        console.error('Error loading settings:', err);
+      }
+    }
+
+    document.getElementById('settingsForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const btn = document.getElementById('saveBtn');
+      const alertBox = document.getElementById('saveAlert');
+
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Menyimpan ke Website 1...';
+      alertBox.classList.add('hidden');
+
+      const payload = {
+        title: document.getElementById('inputTitle').value.trim(),
+        description: document.getElementById('inputDescription').value.trim(),
+        event_date: new Date(document.getElementById('inputDate').value).toISOString(),
+        location: document.getElementById('inputLocation').value.trim(),
+        quota: parseInt(document.getElementById('inputQuota').value),
+        speaker_name: document.getElementById('inputSpeakerName').value.trim(),
+        speaker_title: document.getElementById('inputSpeakerTitle').value.trim(),
+        committee_chair: document.getElementById('inputCommitteeChair').value.trim()
+      };
+
+      try {
+        const res = await fetch('/api/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const result = await res.json();
+
+        if (result.success) {
+          alertBox.innerText = '✅ Berhasil! Pengaturan acara dan nama pemateri telah diperbarui dan langsung aktif di Website 1 (Landing Page).';
+          alertBox.className = 'p-4 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200';
+          alertBox.classList.remove('hidden');
+        } else {
+          alertBox.innerText = '❌ Gagal: ' + (result.message || 'Terjadi kesalahan sistem.');
+          alertBox.className = 'p-4 rounded-xl text-xs font-bold bg-rose-50 text-rose-800 border border-rose-200';
+          alertBox.classList.remove('hidden');
+        }
+      } catch (err) {
+        console.error(err);
+        alertBox.innerText = '❌ Gagal terhubung ke server backend.';
+        alertBox.className = 'p-4 rounded-xl text-xs font-bold bg-rose-50 text-rose-800 border border-rose-200';
+        alertBox.classList.remove('hidden');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-floppy-disk mr-2"></i> Simpan Pengaturan & Sinkronkan ke Web 1';
+      }
+    });
+
+    document.addEventListener('DOMContentLoaded', loadSettings);
+  </script>
+</body>
+</html>
